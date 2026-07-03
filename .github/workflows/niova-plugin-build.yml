@@ -48,6 +48,7 @@ jobs:
           meson setup builddir \
             -Denable_plugins=NIOVA,POSIX \
             -Dbuildtype=release \
+            -Dbuild_python=false \
             --prefix=/usr/local
       
       - name: Build
