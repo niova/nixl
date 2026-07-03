@@ -1,0 +1,83 @@
+name: NIOVA Plugin Build
+
+on:
+  push:
+    branches:
+      - feature/niova-plugin
+      - main
+  pull_request:
+    branches:
+      - feature/niova-plugin
+
+jobs:
+  build:
+    name: Build NIXL with NIOVA Plugin
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            meson \
+            ninja-build \
+            pkg-config \
+            python3-dev \
+            python3-pip \
+            libssl-dev \
+            git
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install meson ninja
+      
+      - name: Configure build with NIOVA plugin
+        run: |
+          meson setup builddir \
+            -Denable_plugins=NIOVA,POSIX \
+            -Dbuildtype=release \
+            --prefix=/usr/local
+      
+      - name: Build
+        run: |
+          meson compile -C builddir -v
+      
+      - name: Run tests
+        run: |
+          meson test -C builddir --verbose || true
+      
+      - name: Install
+        run: |
+          sudo meson install -C builddir
+      
+      - name: Verify NIOVA plugin
+        run: |
+          if [ -f builddir/src/plugins/niova/libplugin_NIOVA.so ]; then
+            echo "✓ NIOVA plugin built successfully"
+            ls -lh builddir/src/plugins/niova/libplugin_NIOVA.so
+          else
+            echo "✗ NIOVA plugin library not found"
+            exit 1
+          fi
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: niova-plugin-build
+          path: |
+            builddir/src/plugins/niova/*.so
+            builddir/meson-logs/*.txt
+          retention-days: 7

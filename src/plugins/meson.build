@@ -140,6 +140,11 @@ if enabled_plugins.get('GPUNETIO')
     endif
 endif
 
+if enabled_plugins.get('NIOVA')
+    message('NIOVA plugin enabled')
+    subdir('niova')
+endif
+
 subdir('telemetry')
 
 if nixl_trace_enabled
